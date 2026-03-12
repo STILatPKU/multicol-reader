@@ -1,0 +1,24 @@
+{
+  "manifest_version": 2,
+  "name": "Firefox Multicol Reader",
+  "version": "0.1.0",
+  "description": "Select a page container and render it in multi-column reading mode.",
+  "permissions": [
+    "activeTab",
+    "tabs"
+  ],
+  "background": {
+    "scripts": [
+      "background.js"
+    ]
+  },
+  "browser_action": {
+    "default_title": "Toggle multi-column reader"
+  },
+  "applications": {
+    "gecko": {
+      "id": "firefox-multicol-reader@example.local",
+      "strict_min_version": "109.0"
+    }
+  }
+}
