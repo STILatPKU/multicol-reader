@@ -671,10 +671,25 @@
       return;
     }
 
+    const pagination = computePagination();
     const progress = state.maxScrollProgress === 0
       ? 100
       : Math.round((state.scrollProgress / state.maxScrollProgress) * 100);
-    state.readingMeta.textContent = `${state.columnCount} cols · ${progress}% · wheel/Up/Down · Left/Right page · 1/2/3 · Esc`;
+    state.readingMeta.textContent = `${state.columnCount} cols · ${pagination.currentPage}/${pagination.totalPages} page · ${progress}% · wheel/Up/Down · Left/Right page · 1/2/3 · Esc`;
+  }
+
+  function computePagination() {
+    if (!state.layout) {
+      return { currentPage: 1, totalPages: 1 };
+    }
+
+    const pageSpan = state.layout.columnHeight * state.columnCount;
+    const totalPages = state.contentHeight < pageSpan * 2
+      ? 1
+      : Math.floor(state.contentHeight / pageSpan);
+    const currentPage = Math.floor(state.scrollProgress / pageSpan) + 1;
+
+    return { currentPage, totalPages };
   }
 
   function updateScrollProgress(delta) {
