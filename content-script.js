@@ -809,10 +809,6 @@
     return text.replace(/\s+/g, " ").length;
   }
 
-  function isValidSelection(element) {
-    return explainSelectionValidity(element).ok;
-  }
-
   function explainSelectionValidity(element) {
     if (!element) {
       return { ok: false, reason: "no selectable container under pointer", element: null };
