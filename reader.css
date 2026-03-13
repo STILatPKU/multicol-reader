@@ -62,6 +62,7 @@
   position: fixed;
   z-index: 2147483645;
   pointer-events: auto;
+  outline: none;
   box-sizing: border-box;
   padding: 24px;
   border-radius: 18px;
@@ -69,6 +70,11 @@
   border: 1px solid rgba(15, 23, 42, 0.12);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
   overflow: hidden;
+}
+
+.ffmc-reading-stage:focus,
+.ffmc-reading-stage:focus-visible {
+  outline: none;
 }
 
 .ffmc-reading-header {

@@ -444,6 +444,7 @@
     stage.style.top = `${layout.stageTop}px`;
     stage.style.width = `${layout.stageWidth}px`;
     stage.style.height = `${layout.stageHeight}px`;
+    stage.style.outline = "none";
     stage.setAttribute("tabindex", "-1");
 
     const header = document.createElement("div");
