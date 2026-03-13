@@ -33,8 +33,12 @@
   const MIN_SAFE_WIDTH = 480;
   const MIN_SAFE_HEIGHT = 240;
   const STAGE_MARGIN = 8;
-  const STAGE_PADDING = 18;
-  const HEADER_HEIGHT = 28;
+  const STAGE_PADDING = 24;
+  const STAGE_BORDER_WIDTH = 1;
+  const HEADER_HEIGHT = 22;
+  const HEADER_MARGIN_TOP = -16;
+  const HEADER_MARGIN_BOTTOM = 6;
+  const HEADER_FLOW_HEIGHT = HEADER_HEIGHT + HEADER_MARGIN_TOP + HEADER_MARGIN_BOTTOM;
   const COLUMN_GAP = 24;
   const EXACT_LAYOUT_CLASSNAMES = new Set([
     "page-columns",
@@ -524,7 +528,7 @@
       return;
     }
 
-    columnState.wrapper.style.transform = `translate3d(0, ${-Math.round(offset)}px, 0)`;
+    columnState.wrapper.style.transform = `translate3d(0, ${-offset}px, 0)`;
   }
 
   function createContextualClone() {
@@ -914,8 +918,8 @@
   function computeLayoutParams(safeRect, columnCount) {
     const stageWidth = safeRect.width;
     const stageHeight = safeRect.height;
-    const contentWidth = stageWidth - STAGE_PADDING * 2;
-    const contentHeight = stageHeight - STAGE_PADDING * 2 - HEADER_HEIGHT - 12;
+    const contentWidth = stageWidth - (STAGE_BORDER_WIDTH + STAGE_PADDING) * 2;
+    const contentHeight = stageHeight - (STAGE_BORDER_WIDTH + STAGE_PADDING) * 2 - HEADER_FLOW_HEIGHT;
     const columnWidth = Math.max(180, Math.floor((contentWidth - COLUMN_GAP * (columnCount - 1)) / columnCount));
 
     return {
