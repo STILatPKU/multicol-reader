@@ -393,7 +393,7 @@
 
       if (vDelta !== 0) {
         event.preventDefault();
-        queueScrollDelta(vDelta);
+        updateScrollProgress(vDelta);
       }
 
       return;
@@ -405,19 +405,7 @@
     }
 
     event.preventDefault();
-    queueScrollDelta(delta);
-  }
-
-  function onReadingClick() {
-    if (state.readingStage && document.activeElement !== state.readingStage) {
-      state.readingStage.focus({ preventScroll: true });
-    }
-  }
-
-  function onReadingMouseEnter() {
-    if (state.readingStage && document.activeElement !== state.readingStage) {
-      state.readingStage.focus({ preventScroll: true });
-    }
+    updateScrollProgress(delta);
   }
 
   // ---------------------------------------------------------------------------
@@ -543,7 +531,7 @@
       return;
     }
 
-    const safeRect = getEffectiveSafeRect(computeSafeRect(state.selectedRoot));
+    const safeRect = getEffectiveSafeRect();
     const layout = computeLayoutParams(safeRect, state.columnCount);
     const measuredHeight = measureContentHeight(layout.columnWidth);
 
@@ -606,7 +594,7 @@
 
       const contextual = createContextualClone();
       if (contextual) {
-        source.appendChild(contextual.container);
+        source.appendChild(contextual.wrapper);
       }
 
       column.appendChild(source);
@@ -632,8 +620,8 @@
     }
 
     addListener(state.readingStage, "wheel", onReadingWheel, { passive: false });
-    addListener(state.readingStage, "click", onReadingClick, false);
-    addListener(state.readingStage, "mouseenter", onReadingMouseEnter, false);
+    addListener(state.readingStage, "click", ensureReadingFocus, false);
+    addListener(state.readingStage, "mouseenter", ensureReadingFocus, false);
 
     const images = state.readingStage.querySelectorAll("img");
     if (images.length === 0) {
@@ -676,10 +664,7 @@
     wrapper.classList.add(CLASSNAMES.readingRootClone);
     normalizeCloneRoot(wrapper);
 
-    return {
-      container: wrapper,
-      wrapper,
-    };
+    return { wrapper };
   }
 
   function normalizeCloneRoot(wrapper) {
@@ -707,23 +692,28 @@
     wrapper.style.clear = "both";
     wrapper.style.overflow = "visible";
     wrapper.style.transformOrigin = "top left";
+    for (const className of Array.from(wrapper.classList)) {
+      if (isFrameworkLayoutClass(className)) {
+        wrapper.classList.remove(className);
+      }
+    }
     normalizeCloneTree(wrapper);
   }
 
   function normalizeCloneTree(root) {
-    const elements = [root, ...root.querySelectorAll("*")];
-    for (const element of elements) {
-      if (!(element instanceof Element)) {
-        continue;
+    for (const element of root.querySelectorAll("*")) {
+      let hasLayoutClass = false;
+      for (const className of Array.from(element.classList)) {
+        if (isFrameworkLayoutClass(className)) {
+          hasLayoutClass = true;
+          element.classList.remove(className);
+        }
       }
 
-      const hasLayoutClass = isFrameworkLayoutElement(element);
       const isMarginElement =
         element.classList.contains("column-margin") ||
         element.classList.contains("column-container") ||
         element.classList.contains("wp-block-column");
-
-      stripProblematicLayoutClasses(element);
 
       if (hasLayoutClass) {
         element.style.display = "block";
@@ -777,18 +767,6 @@
     }
   }
 
-  function stripProblematicLayoutClasses(element) {
-    for (const className of Array.from(element.classList)) {
-      if (isFrameworkLayoutClass(className)) {
-        element.classList.remove(className);
-      }
-    }
-  }
-
-  function isFrameworkLayoutElement(element) {
-    return Array.from(element.classList).some((className) => isFrameworkLayoutClass(className));
-  }
-
   function isFrameworkLayoutClass(className) {
     if (EXACT_LAYOUT_CLASSNAMES.has(className)) {
       return true;
@@ -813,7 +791,7 @@
       return 0;
     }
 
-    frame.appendChild(contextual.container);
+    frame.appendChild(contextual.wrapper);
     state.measureRoot.appendChild(frame);
 
     contextual.wrapper.style.minHeight = "0";
@@ -852,10 +830,6 @@
   }
 
   function updateScrollProgress(delta) {
-    setScrollProgress(state.targetScrollProgress + delta);
-  }
-
-  function queueScrollDelta(delta) {
     setScrollProgress(state.targetScrollProgress + delta);
   }
 
@@ -1001,88 +975,13 @@
     };
   }
 
-  function getEffectiveSafeRect(safeRect) {
-    const width = Math.max(MIN_SAFE_WIDTH, window.innerWidth - STAGE_MARGIN * 2);
-    const height = Math.max(MIN_SAFE_HEIGHT, window.innerHeight - STAGE_MARGIN * 2);
-
+  function getEffectiveSafeRect() {
     return {
       left: STAGE_MARGIN,
       top: STAGE_MARGIN,
-      width,
-      height,
+      width: Math.max(MIN_SAFE_WIDTH, window.innerWidth - STAGE_MARGIN * 2),
+      height: Math.max(MIN_SAFE_HEIGHT, window.innerHeight - STAGE_MARGIN * 2),
     };
-  }
-
-  function computeSafeRect(root) {
-    const rootRect = root.getBoundingClientRect();
-    const obstacles = collectObstacleRects(root, rootRect);
-
-    let safeTop = rootRect.top;
-    let safeLeft = rootRect.left;
-    let safeRight = rootRect.right;
-    let safeBottom = rootRect.bottom;
-
-    for (const rect of obstacles) {
-      const horizontalCoverage = overlapSize(rootRect.left, rootRect.right, rect.left, rect.right) / Math.max(rootRect.width, 1);
-      const verticalCoverage = overlapSize(rootRect.top, rootRect.bottom, rect.top, rect.bottom) / Math.max(rootRect.height, 1);
-
-      if (rect.top <= rootRect.top + 80 && horizontalCoverage >= 0.5) {
-        safeTop = Math.max(safeTop, rect.bottom);
-      }
-      if (rect.left <= rootRect.left + 80 && verticalCoverage >= 0.5) {
-        safeLeft = Math.max(safeLeft, rect.right);
-      }
-      if (rect.right >= rootRect.right - 80 && verticalCoverage >= 0.5) {
-        safeRight = Math.min(safeRight, rect.left);
-      }
-      if (rect.bottom >= rootRect.bottom - 80 && horizontalCoverage >= 0.5) {
-        safeBottom = Math.min(safeBottom, rect.top);
-      }
-    }
-
-    return {
-      width: Math.max(0, safeRight - safeLeft),
-      height: Math.max(0, safeBottom - safeTop),
-    };
-  }
-
-  function collectObstacleRects(root, rootRect) {
-    const obstacles = [];
-    const allElements = document.body ? document.body.getElementsByTagName("*") : [];
-
-    for (const element of allElements) {
-      if (
-        element === root ||
-        root.contains(element) ||
-        isOverlayElement(element) ||
-        element.classList.contains(CLASSNAMES.hidden)
-      ) {
-        continue;
-      }
-
-      const style = window.getComputedStyle(element);
-      if (style.visibility === "hidden" || style.display === "none") {
-        continue;
-      }
-      if (style.position !== "fixed" && style.position !== "sticky") {
-        continue;
-      }
-
-      const rect = element.getBoundingClientRect();
-      if (rect.width < 40 || rect.height < 40 || !rectsOverlap(rootRect, rect)) {
-        continue;
-      }
-
-      const zIndex = Number.parseInt(style.zIndex, 10);
-      const edgePinned = rect.top <= 24 || rect.left <= 24 || rect.right >= window.innerWidth - 24 || rect.bottom >= window.innerHeight - 24;
-      if (!edgePinned && !(Number.isFinite(zIndex) && zIndex >= 10)) {
-        continue;
-      }
-
-      obstacles.push(rect);
-    }
-
-    return obstacles;
   }
 
   function computeLayoutParams(safeRect, columnCount) {
@@ -1216,7 +1115,7 @@
     const opacity = visible ? "1" : "0";
     state.highlightBox.style.opacity = opacity;
     state.label.style.opacity = opacity;
-    state.hintBar.style.opacity = visible ? "1" : "0";
+    state.hintBar.style.opacity = opacity;
   }
 
   function renderHighlight(element) {
@@ -1298,14 +1197,6 @@
 
   function isOverlayElement(element) {
     return Boolean(state.overlayRoot && (element === state.overlayRoot || state.overlayRoot.contains(element)));
-  }
-
-  function rectsOverlap(a, b) {
-    return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
-  }
-
-  function overlapSize(startA, endA, startB, endB) {
-    return Math.max(0, Math.min(endA, endB) - Math.max(startA, startB));
   }
 
   function clamp(value, min, max) {
