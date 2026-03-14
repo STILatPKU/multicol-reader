@@ -1,5 +1,7 @@
 # Firefox Multicol Reader
 
+<img src="icons/icon-128.png" width="128" alt="Firefox Multicol Reader icon">
+
 A Firefox WebExtension that lets you pick the main content area on a page and read it in a fixed 1 / 2 / 3 column reader.
 
 ## Features
