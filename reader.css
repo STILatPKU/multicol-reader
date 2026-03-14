@@ -153,6 +153,24 @@
   max-width: 100% !important;
 }
 
+/* Horizontal scroll wrapper injected around wide tables */
+.ffmc-table-scroll-wrapper {
+  overflow-x: auto;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+}
+
+.ffmc-table-scroll-wrapper > table {
+  max-width: none !important;
+  min-width: auto !important;
+}
+
+/* Allow pre/code blocks to scroll horizontally within their column */
+.ffmc-reading-column pre {
+  overflow-x: auto !important;
+}
+
 .ffmc-hidden-by-extension {
   display: none !important;
 }

@@ -24,6 +24,7 @@
     readingColumn: "ffmc-reading-column",
     readingSource: "ffmc-reading-source",
     readingRootClone: "ffmc-reading-root-clone",
+    tableScrollWrapper: "ffmc-table-scroll-wrapper",
     hidden: "ffmc-hidden-by-extension",
   };
 
@@ -377,6 +378,27 @@
       return;
     }
 
+    // If the cursor is inside a horizontally overflowing element (e.g. a wide
+    // table or a <pre> block), apply the horizontal component to that element
+    // and the vertical component to the global reader scroll simultaneously.
+    const hTarget = findHScrollTarget(event.target);
+    if (hTarget) {
+      const hDelta = event.deltaX;
+      const vDelta = event.deltaY;
+
+      if (hDelta !== 0) {
+        event.preventDefault();
+        applyHScroll(hTarget, hDelta);
+      }
+
+      if (vDelta !== 0) {
+        event.preventDefault();
+        queueScrollDelta(vDelta);
+      }
+
+      return;
+    }
+
     const delta = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
     if (!delta) {
       return;
@@ -390,6 +412,118 @@
     if (state.readingStage && document.activeElement !== state.readingStage) {
       state.readingStage.focus({ preventScroll: true });
     }
+  }
+
+  function onReadingMouseEnter() {
+    if (state.readingStage && document.activeElement !== state.readingStage) {
+      state.readingStage.focus({ preventScroll: true });
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Horizontal-scroll helpers for overflowing elements (tables, pre blocks, …)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Walk up from `target` to the reading stage and return the first element
+   * that is a real horizontal scroll container (overflow-x: auto|scroll and
+   * scrollWidth > clientWidth).
+   */
+  function findHScrollTarget(target) {
+    if (!state.readingStage) {
+      return null;
+    }
+    let element = target;
+    while (element && element !== state.readingStage) {
+      if (element.scrollWidth > element.clientWidth + 2) {
+        const ox = window.getComputedStyle(element).overflowX;
+        if (ox === "auto" || ox === "scroll") {
+          return element;
+        }
+      }
+      element = element.parentElement;
+    }
+    return null;
+  }
+
+  /**
+   * Scroll `element` horizontally by `delta` pixels and sync the new
+   * scrollLeft to the matching element in every other column.
+   */
+  function applyHScroll(element, delta) {
+    const maxScroll = element.scrollWidth - element.clientWidth;
+    element.scrollLeft = clamp(element.scrollLeft + delta, 0, maxScroll);
+    syncHScrollAcrossColumns(element);
+  }
+
+  /**
+   * Given a horizontally-scrolled element in one column's clone, apply the
+   * same scrollLeft to the equivalent element in all other columns.
+   */
+  function syncHScrollAcrossColumns(element) {
+    let sourceIndex = -1;
+    let path = null;
+
+    for (let i = 0; i < state.readingColumns.length; i++) {
+      const { wrapper } = state.readingColumns[i];
+      if (wrapper && wrapper.contains(element)) {
+        path = getElementDomPath(element, wrapper);
+        sourceIndex = i;
+        break;
+      }
+    }
+
+    if (sourceIndex === -1 || !path) {
+      return;
+    }
+
+    const targetScrollLeft = element.scrollLeft;
+    for (let i = 0; i < state.readingColumns.length; i++) {
+      if (i === sourceIndex) {
+        continue;
+      }
+      const { wrapper } = state.readingColumns[i];
+      if (!wrapper) {
+        continue;
+      }
+      const peer = getElementByDomPath(path, wrapper);
+      if (peer) {
+        peer.scrollLeft = targetScrollLeft;
+      }
+    }
+  }
+
+  /**
+   * Return an array of child-index steps from `root` down to `element`, or
+   * null if `element` is not a descendant of `root`.
+   */
+  function getElementDomPath(element, root) {
+    const path = [];
+    let current = element;
+    while (current && current !== root) {
+      const parent = current.parentElement;
+      if (!parent) {
+        return null;
+      }
+      path.unshift(Array.from(parent.children).indexOf(current));
+      current = parent;
+    }
+    return current === root ? path : null;
+  }
+
+  /**
+   * Walk `path` from `root` returning the descendant element, or null if the
+   * path is invalid.
+   */
+  function getElementByDomPath(path, root) {
+    let current = root;
+    for (const index of path) {
+      if (!current || index >= current.children.length) {
+        return null;
+      }
+      current = current.children[index];
+    }
+    return current;
   }
 
   function stopSelectingInteraction() {
@@ -499,6 +633,7 @@
 
     addListener(state.readingStage, "wheel", onReadingWheel, { passive: false });
     addListener(state.readingStage, "click", onReadingClick, false);
+    addListener(state.readingStage, "mouseenter", onReadingMouseEnter, false);
 
     const images = state.readingStage.querySelectorAll("img");
     if (images.length === 0) {
@@ -619,6 +754,26 @@
         element.style.margin = "1rem 0";
         element.style.padding = "0";
       }
+    }
+
+    // Wrap table elements in a scrollable container so wide tables can scroll
+    // horizontally inside the column without breaking the column layout.
+    for (const table of Array.from(root.querySelectorAll("table"))) {
+      if (
+        table.parentElement &&
+        table.parentElement.classList.contains(CLASSNAMES.tableScrollWrapper)
+      ) {
+        continue; // already wrapped
+      }
+      const scrollWrap = document.createElement("div");
+      scrollWrap.className = CLASSNAMES.tableScrollWrapper;
+      if (table.parentElement) {
+        table.parentElement.insertBefore(scrollWrap, table);
+      }
+      scrollWrap.appendChild(table);
+      // Override the global max-width: 100% !important rule so the table can
+      // be its natural content width (the wrapper constrains and scrolls it).
+      table.style.setProperty("max-width", "none", "important");
     }
   }
 
