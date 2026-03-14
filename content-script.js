@@ -556,6 +556,7 @@
     wrapper.style.width = "100%";
     wrapper.style.maxWidth = "100%";
     wrapper.style.minWidth = "0";
+    wrapper.style.minHeight = "0";
     wrapper.style.height = "auto";
     wrapper.style.gridTemplateColumns = "none";
     wrapper.style.gridTemplateRows = "none";
@@ -660,6 +661,8 @@
     frame.appendChild(contextual.container);
     state.measureRoot.appendChild(frame);
 
+    contextual.wrapper.style.minHeight = "0";
+    contextual.wrapper.style.height = "auto";
     const rect = contextual.wrapper.getBoundingClientRect();
     const height = Math.max(1, Math.ceil(rect.height));
 
