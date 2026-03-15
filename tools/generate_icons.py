@@ -46,7 +46,7 @@ for y in range(top+3, bottom-3, 3):
 paths=[]
 
 # Save base
-base_path="/icon/icon-16.png"
+base_path="icons/icon-16.png"
 img.save(base_path)
 paths.append(base_path)
 
@@ -54,6 +54,6 @@ paths.append(base_path)
 scales=[32,48,64,96,128]
 for s in scales:
     icon = img.resize((s,s), resample=Image.NEAREST)
-    path=f"/icon/icon-{s}.png"
+    path=f"icons/icon-{s}.png"
     icon.save(path)
     paths.append(path)
