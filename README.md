@@ -1,4 +1,6 @@
-# Firefox Multicol Reader
+# Multicol Reader
+
+![Firefox](https://img.shields.io/badge/Built_for-Firefox-FF7139?logo=Firefox-Browser&logoColor=white)
 
 <img src="icons/icon-128.png" width="128" alt="Firefox Multicol Reader icon">
 
@@ -35,10 +37,10 @@ Shortcuts in reader mode:
 
 ## Build XPI
 
-Run this in the project root:
+Run in the project root:
 
 ```bash
-zip -r firefox-multicol-reader.xpi manifest.json background.js content-script.js reader.css icons -x "*.DS_Store"
+./build.sh
 ```
 
 ## Notes

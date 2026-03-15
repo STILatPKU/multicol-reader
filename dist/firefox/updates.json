@@ -1,0 +1,12 @@
+{
+  "addons": {
+    "multicol-reader@stil.code": {
+      "updates": [
+        {
+          "version": "0.1.0",
+          "update_link": "https://github.com/STILatPKU/multicol-reader/releases/latest/download/multicol-reader.xpi"
+        }
+      ]
+    }
+  }
+}
