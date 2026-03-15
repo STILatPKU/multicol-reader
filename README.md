@@ -38,7 +38,7 @@ Shortcuts in reader mode:
 Run this in the project root:
 
 ```bash
-zip -r firefox-multicol-reader.xpi manifest.json background.js content-script.js reader.css -x "*.DS_Store"
+zip -r firefox-multicol-reader.xpi manifest.json background.js content-script.js reader.css icons -x "*.DS_Store"
 ```
 
 ## Notes
